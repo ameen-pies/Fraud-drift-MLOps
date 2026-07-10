@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+mlruns/
+mlartifacts/
+data/raw/
+models/*.pkl
+logs/
+.env
+*.egg-info/
