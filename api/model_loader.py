@@ -3,7 +3,7 @@
 import pickle
 from pathlib import Path
 
-MODEL_PATH = Path(__file__).resolve().parent.parent / "models" / "model_v1.pkl"
+MODEL_DIR = Path(__file__).resolve().parent.parent / "models"
 
 _model = None
 
@@ -11,8 +11,14 @@ _model = None
 def load_model():
     global _model
     if _model is None:
-        with open(MODEL_PATH, "rb") as f:
+        # Load latest model version
+        model_files = sorted(MODEL_DIR.glob("model_v*.pkl"))
+        if not model_files:
+            raise FileNotFoundError("No model found in models/")
+        latest = model_files[-1]
+        with open(latest, "rb") as f:
             _model = pickle.load(f)
+        print(f"Loaded model from {latest.name}")
     return _model
 
 
