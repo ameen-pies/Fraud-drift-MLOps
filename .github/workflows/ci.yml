@@ -8,5 +8,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install -r training/requirements.txt -r api/requirements.txt pytest
-      - run: pytest tests/ -v
+      - name: Install dependencies
+        run: |
+          pip install -r training/requirements.txt
+          pip install -r api/requirements.txt
+          pip install pytest
+      - name: Generate data
+        run: python training/data_prep.py
+      - name: Train model
+        run: python training/train.py
+      - name: Run API tests
+        run: pytest tests/test_api.py -v
+      - name: Run model quality tests
+        run: pytest tests/test_model_quality.py -v

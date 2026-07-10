@@ -1,9 +1,11 @@
-"""Train RandomForestClassifier, evaluate, save model."""
+"""Train RandomForestClassifier, evaluate, log to MLflow, register model."""
 
 import pickle
 from pathlib import Path
 import numpy as np
 import pandas as pd
+import mlflow
+import mlflow.sklearn
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import (
     accuracy_score,
@@ -16,6 +18,10 @@ from sklearn.metrics import (
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 MODEL_DIR = Path(__file__).resolve().parent.parent / "models"
+
+MLFLOW_TRACKING_URI = "http://localhost:5000"
+EXPERIMENT_NAME = "fraud-detection"
+MODEL_NAME = "fraud-rfc"
 
 
 def load_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
@@ -46,7 +52,6 @@ def train_model(X_train: pd.DataFrame, y_train: pd.Series) -> RandomForestClassi
 
 def evaluate(model: RandomForestClassifier, X_val: pd.DataFrame, y_val: pd.Series) -> dict:
     y_pred = model.predict(X_val)
-    y_proba = model.predict_proba(X_val)[:, 1]
 
     metrics = {
         "accuracy": accuracy_score(y_val, y_pred),
@@ -68,16 +73,49 @@ def evaluate(model: RandomForestClassifier, X_val: pd.DataFrame, y_val: pd.Serie
     return metrics
 
 
+def log_to_mlflow(
+    model: RandomForestClassifier,
+    metrics: dict,
+    params: dict,
+    X_train: pd.DataFrame,
+) -> None:
+    mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+    mlflow.set_experiment(EXPERIMENT_NAME)
+
+    with mlflow.start_run():
+        mlflow.log_params(params)
+        mlflow.log_metrics(metrics)
+
+        mlflow.sklearn.log_model(
+            sk_model=model,
+            artifact_path="model",
+            registered_model_name=MODEL_NAME,
+        )
+
+        print(f"\nMLflow run logged to {MLFLOW_TRACKING_URI}")
+
+
 def save_model(model: RandomForestClassifier) -> None:
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
     path = MODEL_DIR / "model_v1.pkl"
     with open(path, "wb") as f:
         pickle.dump(model, f)
-    print(f"\nModel saved to {path}")
+    print(f"Model saved to {path}")
 
 
 if __name__ == "__main__":
     X_train, X_val, y_train, y_val = load_data()
+
+    params = {
+        "n_estimators": 200,
+        "max_depth": 12,
+        "min_samples_split": 5,
+        "min_samples_leaf": 2,
+        "class_weight": "balanced",
+        "random_state": 42,
+    }
+
     model = train_model(X_train, y_train)
     metrics = evaluate(model, X_val, y_val)
+    log_to_mlflow(model, metrics, params, X_train)
     save_model(model)
