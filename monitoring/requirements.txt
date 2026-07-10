@@ -1,3 +1,2 @@
-evidently
-locust
+evidently==0.4.22
 requests
