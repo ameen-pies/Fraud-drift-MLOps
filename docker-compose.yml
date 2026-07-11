@@ -6,6 +6,8 @@ services:
     volumes:
       - ./models:/app/models
       - ./logs:/app/logs
+    depends_on:
+      - mlflow
 
   mlflow:
     image: ghcr.io/mlflow/mlflow:v2.15.0
